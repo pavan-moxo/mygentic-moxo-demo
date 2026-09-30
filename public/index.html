@@ -497,107 +497,129 @@ body { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height
 </div>
 
 <script>
-// ── MOXO SDK INTEGRATION ──────────────────────────────────────────────────
+// ── MOXO REST API INTEGRATION ─────────────────────────────────────────────
 const DEMO_USER_EMAIL = 'pavan.prasad@moxo.com';
 
-// Map each demo scene to a Moxo template ID (update when templates are created)
-const TEMPLATE_IDS = {
-  rockstar:    null, // 'tmpl_xxx' — set once created in Moxo
-  member:      null,
-  coach:       null,
-  marketplace: null,
+// Template IDs (created in Moxo workspace)
+const TEMPLATES = {
+  rockstar:    '31cc564d-a688-4c77-96de-c618b4c68d27',
+  member:      '57484144-0f7d-4d3a-befe-07ae7b5894db',
+  coach:       '23a406c9-bb89-43ea-ac37-a29d24039559',
+  marketplace: 'fcccc92a-9561-4590-9173-ae93cc4714bb',
 };
 
-let moxoToken = null;
-let activeFlowId = null;
-let sdkReady = false;
+// Track active flows per scene (cache per session)
+const activeFlows = {};
+let moxoReady = false;
 
-async function initMoxoSDK() {
+async function initMoxo() {
+  // Test connectivity to our backend
   try {
-    const res = await fetch('/api/moxo-session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: DEMO_USER_EMAIL }),
-    });
+    const res = await fetch('/api/moxo-flows?scene=rockstar');
     const data = await res.json();
-    if (data.token || data.sessionToken) {
-      moxoToken = data.token || data.sessionToken;
-      sdkReady = true;
-      document.getElementById('sdk-status-badge').textContent = 'SDK: live ✓';
+    if (data.success !== false) {
+      moxoReady = true;
+      document.getElementById('sdk-status-badge').textContent = 'Moxo: live ✓';
       document.getElementById('sdk-status-badge').className = 'sdk-status live';
-      console.log('[Moxo] SDK session minted');
+      console.log('[Moxo] API connected');
       loadFlowForCurrentScene();
-    } else {
-      throw new Error(data.error || data.code || 'no token');
     }
   } catch (e) {
-    console.warn('[Moxo] SDK not available, running in demo mode:', e.message);
+    console.warn('[Moxo] API not reachable, demo mode:', e.message);
     document.getElementById('sdk-status-badge').textContent = 'Demo mode';
     document.getElementById('sdk-status-badge').className = 'sdk-status demo';
   }
 }
 
 async function loadFlowForCurrentScene() {
-  const templateId = TEMPLATE_IDS[currentScene];
-  if (!sdkReady || !templateId || !moxoToken) return;
+  if (!moxoReady) return;
 
+  const scene = currentScene;
   const embed = document.getElementById('moxo-flow-embed');
   const demoSteps = document.getElementById('demo-steps');
-  embed.className = 'loading';
-  embed.style.display = '';
-  embed.innerHTML = '<p style="color:var(--ink-mute);font-size:13px;padding:32px;text-align:center;">Loading your Moxo workflow…</p>';
+
+  // Show loading state in the steps area while we check
+  const activeStepEl = demoSteps.querySelector('.step-active .step-name');
+  if (activeStepEl) activeStepEl.textContent += ' ⟳';
 
   try {
-    // Check if a flow already exists for this user + template
-    const listRes = await fetch(`/api/moxo-flows?templateId=${templateId}`, {
-      headers: { 'Authorization': `Bearer ${moxoToken}` },
-    });
-    const listData = await listRes.json();
-    let flowId = listData.flows?.[0]?.id;
+    // Check if a flow already exists for this scene
+    let flowId = activeFlows[scene];
+    if (!flowId) {
+      const listRes = await fetch(`/api/moxo-flows?scene=${scene}`);
+      const listData = await listRes.json();
+      flowId = listData.data?.[0]?.id;
+    }
 
-    // Create one if none exists (brain data auto-injected)
+    // Start one if none exists
     if (!flowId) {
       const createRes = await fetch('/api/moxo-flows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateId,
-          participantEmail: DEMO_USER_EMAIL,
-          brainData: getBrainData(currentScene),
-        }),
+        body: JSON.stringify({ scene, userEmail: DEMO_USER_EMAIL }),
       });
       const createData = await createRes.json();
-      flowId = createData.flow?.id || createData.id;
+      flowId = createData.data?.id;
+      if (flowId) console.log(`[Moxo] Started new flow: ${flowId}`);
     }
 
     if (flowId) {
-      activeFlowId = flowId;
-      // Embed the Moxo flow using the SDK session token
-      embed.className = '';
-      embed.style.display = '';
-      embed.innerHTML = `<iframe
-        src="https://app.moxo.com/mygentic/sdk/flow/${flowId}?token=${encodeURIComponent(moxoToken)}"
-        allow="camera; microphone; clipboard-write"
-        style="width:100%;border:none;min-height:600px;"
-        title="Moxo Workflow"
-      ></iframe>`;
-      demoSteps.style.display = 'none';
+      activeFlows[scene] = flowId;
+      // Fetch real step statuses and update the UI
+      const flowRes = await fetch(`/api/moxo-flows?scene=${scene}`);
+      const flowData = await flowRes.json();
+      const flow = flowData.data?.[0];
+      if (flow) updateStepStatusesFromFlow(flow, scene);
+
+      // Show a "View in Moxo" link so user can act on steps
+      showMoxoLink(flowId);
     }
   } catch (e) {
-    console.warn('[Moxo] Flow load failed, showing demo steps:', e.message);
-    embed.style.display = 'none';
-    demoSteps.style.display = '';
+    console.warn('[Moxo] Flow load error:', e.message);
   }
+
+  // Restore step name if we modified it
+  if (activeStepEl) activeStepEl.textContent = activeStepEl.textContent.replace(' ⟳', '');
 }
 
-function getBrainData(scene) {
-  const map = {
-    rockstar:    { brainType: 'industry_rockstar', plan: 'flagship', monthlyPrice: 47 },
-    member:      { brainType: 'starter', plan: 'free' },
-    coach:       { brainType: 'coaching', plan: 'genius', clientName: 'Sarah Chen' },
-    marketplace: { brainType: 'marketplace_submission', submissionTitle: 'Enterprise Sales Brain' },
-  };
-  return map[scene] || {};
+function updateStepStatusesFromFlow(flow, scene) {
+  if (!flow.steps) return;
+  const steps = flow.steps;
+  const stepEls = document.querySelectorAll('#demo-steps .step');
+  steps.forEach((step, i) => {
+    const el = stepEls[i];
+    if (!el) return;
+    el.className = 'step ' + (
+      step.status === 'COMPLETED' ? 'step-done' :
+      step.status === 'IN_PROGRESS' ? 'step-active' : 'step-locked'
+    );
+    const numEl = el.querySelector('.step-number');
+    if (numEl) {
+      numEl.textContent = step.status === 'COMPLETED' ? '✓' :
+                          step.status === 'IN_PROGRESS' ? (i + 1) : '🔒';
+    }
+  });
+  const done = steps.filter(s => s.status === 'COMPLETED').length;
+  const pct = Math.round((done / steps.length) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '% complete';
+}
+
+function showMoxoLink(flowId) {
+  const embed = document.getElementById('moxo-flow-embed');
+  embed.style.display = '';
+  embed.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--moxo-pale);border-bottom:1px solid rgba(0,181,173,0.2);">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--moxo-deep);font-weight:600;">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="4" fill="#00B5AD"/><path d="M4 6l4 4 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Real Moxo flow running — Flow ID: <code style="font-family:monospace;font-size:11px;background:rgba(0,181,173,0.15);padding:1px 6px;border-radius:4px;">${flowId.slice(0,8)}…</code>
+      </div>
+      <a href="https://app.moxo.com/mygentic" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:6px;background:var(--moxo);color:#fff;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:600;text-decoration:none;">
+        Open in Moxo →
+      </a>
+    </div>
+  `;
 }
 
 // ── SCENE DATA ───────────────────────────────────────────────────────────
@@ -702,8 +724,8 @@ function submitIntake() {
   toggleExpand('step2-form');
 }
 
-// Boot SDK on load
-initMoxoSDK();
+// Boot on load
+initMoxo();
 </script>
 </body>
 </html>
