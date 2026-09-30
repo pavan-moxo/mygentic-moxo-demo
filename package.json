@@ -1,0 +1,12 @@
+{
+  "name": "mygentic-moxo-demo",
+  "version": "1.0.0",
+  "description": "MyGentic × Moxo integration demo",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'Static site — no build step needed'"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

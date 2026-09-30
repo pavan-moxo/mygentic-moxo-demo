@@ -1,0 +1,709 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MyGentic × Moxo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+
+<style>
+:root {
+  --ink:           #292D34;
+  --ink-soft:      #4B5563;
+  --ink-mute:      #9CA3AF;
+  --paper:         #FFFFFF;
+  --paper-deep:    #F7F8FA;
+  --paper-deeper:  #F0F1F4;
+  --rule:          rgba(41,45,52,0.08);
+  --rule-mid:      rgba(41,45,52,0.14);
+  --marigold:      #D89534;
+  --marigold-deep: #B17821;
+  --marigold-pale: #FDF3E0;
+  --marigold-mid:  #F5E2BC;
+  --sage:          #4FC3E0;
+  --sage-pale:     #E8F8FD;
+  --sage-deep:     #2A9DC4;
+  --violet:        #8B7AE8;
+  --violet-pale:   #F0EEFF;
+  --emerald:       #10B981;
+  --emerald-pale:  #ECFDF5;
+  --moxo:          #00B5AD;
+  --moxo-pale:     #E0F7F6;
+  --moxo-deep:     #008C86;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #F0EDE8; --ink-soft: #C4BFB6; --ink-mute: #7A7570;
+    --paper: #18181B; --paper-deep: #111114; --paper-deeper: #0D0D10;
+    --rule: rgba(240,237,232,0.09); --rule-mid: rgba(240,237,232,0.16);
+    --marigold: #E8A840; --marigold-deep: #C4882A; --marigold-pale: #2A220A; --marigold-mid: #3A2E10;
+    --sage: #5BD0EC; --sage-pale: #0D2A32; --sage-deep: #44B8D4;
+    --violet: #9B8AF8; --violet-pale: #16122A;
+    --emerald: #34D399; --emerald-pale: #052816;
+    --moxo: #26C4BC; --moxo-pale: #082826; --moxo-deep: #1AA89F;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ink: #F0EDE8; --ink-soft: #C4BFB6; --ink-mute: #7A7570;
+  --paper: #18181B; --paper-deep: #111114; --paper-deeper: #0D0D10;
+  --rule: rgba(240,237,232,0.09); --rule-mid: rgba(240,237,232,0.16);
+  --marigold: #E8A840; --marigold-deep: #C4882A; --marigold-pale: #2A220A; --marigold-mid: #3A2E10;
+  --sage: #5BD0EC; --sage-pale: #0D2A32; --sage-deep: #44B8D4;
+  --violet: #9B8AF8; --violet-pale: #16122A;
+  --emerald: #34D399; --emerald-pale: #052816;
+  --moxo: #26C4BC; --moxo-pale: #082826; --moxo-deep: #1AA89F;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: var(--ink); background: var(--paper); min-height: 100vh; }
+
+/* ── NAV ── */
+.nav { position: sticky; top: 0; z-index: 100; height: 56px; background: rgba(255,255,255,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); display: flex; align-items: center; padding: 0 24px; gap: 32px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .nav { background: rgba(24,24,27,0.88); } }
+:root[data-theme="dark"] .nav { background: rgba(24,24,27,0.88); }
+.nav-logo { display: flex; align-items: center; gap: 8px; font-family: 'Instrument Serif', Georgia, serif; font-size: 20px; letter-spacing: -0.3px; color: var(--ink); text-decoration: none; flex-shrink: 0; }
+.nav-logo-mark { width: 30px; height: 30px; background: linear-gradient(135deg, var(--sage) 0%, var(--violet) 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-family: 'Instrument Serif', Georgia, serif; color: #fff; font-style: italic; }
+.nav-links { display: flex; align-items: center; gap: 4px; flex: 1; }
+.nav-link { padding: 6px 12px; border-radius: 6px; font-size: 13.5px; font-weight: 500; color: var(--ink-soft); cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap; }
+.nav-link:hover { background: var(--paper-deep); color: var(--ink); }
+.nav-link.active { background: var(--paper-deeper); color: var(--ink); }
+.nav-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.nav-badge { background: var(--marigold-pale); color: var(--marigold-deep); border: 1px solid var(--marigold-mid); border-radius: 20px; padding: 3px 10px; font-size: 11.5px; font-weight: 600; letter-spacing: 0.3px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #8B7AE8 0%, #4FC3E0 100%); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; }
+
+/* ── LAYOUT ── */
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 56px); }
+
+/* ── SIDEBAR ── */
+.sidebar { border-right: 1px solid var(--rule); background: var(--paper); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px; }
+.sidebar-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.sidebar-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-mute); padding: 0 10px; margin-bottom: 6px; }
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 7px; cursor: pointer; color: var(--ink-soft); font-size: 13.5px; font-weight: 500; transition: background 0.12s, color 0.12s; }
+.sidebar-item:hover { background: var(--paper-deep); color: var(--ink); }
+.sidebar-item.active { background: var(--marigold-pale); color: var(--marigold-deep); }
+.sidebar-item .icon { width: 18px; text-align: center; font-size: 15px; flex-shrink: 0; }
+.sidebar-item .count { margin-left: auto; background: var(--sage-pale); color: var(--sage-deep); border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 600; }
+
+/* ── MAIN ── */
+.main { padding: 32px; max-width: 900px; background: var(--paper-deep); }
+.page-header { margin-bottom: 28px; }
+.page-header .eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--marigold); margin-bottom: 6px; }
+.page-header h1 { font-family: 'Instrument Serif', Georgia, serif; font-size: 28px; line-height: 1.2; letter-spacing: -0.5px; color: var(--ink); margin-bottom: 8px; }
+.page-header .subtitle { color: var(--ink-soft); font-size: 14.5px; max-width: 520px; }
+
+/* ── BRAIN CARD ── */
+.brain-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; padding: 24px; margin-bottom: 24px; }
+.brain-card-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 20px; }
+.brain-icon { width: 52px; height: 52px; border-radius: 12px; background: linear-gradient(135deg, #D89534 0%, #E8A840 100%); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+.brain-meta { flex: 1; }
+.brain-meta h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: 19px; letter-spacing: -0.3px; color: var(--ink); margin-bottom: 4px; }
+.brain-meta .brain-sub { color: var(--ink-mute); font-size: 13px; }
+.brain-meta .brain-tag { display: inline-flex; align-items: center; gap: 4px; background: var(--marigold-pale); color: var(--marigold-deep); border: 1px solid var(--marigold-mid); border-radius: 20px; padding: 2px 10px; font-size: 11.5px; font-weight: 600; margin-top: 6px; }
+.progress-bar-wrap { margin-bottom: 14px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; }
+.progress-label strong { color: var(--ink); }
+.progress-track { height: 8px; background: var(--paper-deeper); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--marigold) 0%, #E8A840 100%); border-radius: 99px; transition: width 0.6s ease; }
+.brain-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.brain-stat { text-align: center; }
+.brain-stat .val { font-family: 'Instrument Serif', Georgia, serif; font-size: 22px; color: var(--ink); display: block; margin-bottom: 2px; }
+.brain-stat .lbl { font-size: 11.5px; color: var(--ink-mute); }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--rule); margin-bottom: 24px; }
+.tab { padding: 10px 18px; font-size: 13.5px; font-weight: 500; color: var(--ink-mute); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
+.tab:hover { color: var(--ink); }
+.tab.active { color: var(--ink); border-bottom-color: var(--marigold); }
+
+/* ── JOURNEY SECTION ── */
+.journey-section { background: var(--paper); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
+.journey-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--rule); background: var(--moxo-pale); }
+.journey-title { display: flex; align-items: center; gap: 10px; }
+.journey-title h3 { font-size: 15px; font-weight: 600; color: var(--ink); }
+.journey-title .moxo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--moxo); flex-shrink: 0; }
+.journey-badge { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--moxo-deep); font-weight: 500; }
+
+/* ── MOXO SDK EMBED ── */
+#moxo-flow-embed { padding: 0; }
+#moxo-flow-embed.loading { padding: 32px; text-align: center; color: var(--ink-mute); font-size: 13px; }
+#moxo-flow-embed iframe { width: 100%; border: none; min-height: 600px; }
+
+/* ── STEPS (shown in demo mode only) ── */
+.steps { padding: 0; }
+.step { display: flex; align-items: flex-start; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--rule); cursor: pointer; transition: background 0.12s; position: relative; }
+.step:last-child { border-bottom: none; }
+.step:hover:not(.step-locked) { background: var(--paper-deep); }
+.step-number-wrap { position: relative; flex-shrink: 0; }
+.step-number { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.step-done .step-number { background: var(--emerald-pale); color: var(--emerald); border: 2px solid var(--emerald); }
+.step-active .step-number { background: var(--moxo-pale); color: var(--moxo-deep); border: 2px solid var(--moxo); animation: pulse-ring 2s ease-in-out infinite; }
+.step-locked .step-number { background: var(--paper-deeper); color: var(--ink-mute); border: 2px solid var(--rule-mid); }
+@keyframes pulse-ring { 0%, 100% { box-shadow: 0 0 0 0 rgba(0,181,173,0.3); } 50% { box-shadow: 0 0 0 6px rgba(0,181,173,0); } }
+.step-connector { position: absolute; left: 18px; top: 36px; width: 2px; height: calc(100% + 20px); background: var(--rule-mid); }
+.step-done .step-connector { background: var(--emerald); }
+.step:last-child .step-connector { display: none; }
+.step-body { flex: 1; min-width: 0; }
+.step-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.step-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+.step-locked .step-name { color: var(--ink-mute); }
+.step-desc { font-size: 13px; color: var(--ink-soft); line-height: 1.5; }
+.step-locked .step-desc { color: var(--ink-mute); }
+.step-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.step-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; background: var(--paper-deep); color: var(--ink-soft); border: 1px solid var(--rule); }
+.step-tag.done { background: var(--emerald-pale); color: var(--emerald); border-color: rgba(16,185,129,0.2); }
+.step-tag.active { background: var(--moxo-pale); color: var(--moxo-deep); border-color: rgba(0,181,173,0.25); }
+.step-tag.locked { background: var(--paper-deep); color: var(--ink-mute); border-color: var(--rule); }
+.step-cta { flex-shrink: 0; }
+
+/* ── BUTTONS ── */
+.btn-primary { background: var(--moxo); color: #fff; border: none; border-radius: 7px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s, transform 0.1s; white-space: nowrap; font-family: inherit; }
+.btn-primary:hover { background: var(--moxo-deep); transform: translateY(-1px); }
+.btn-ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--rule-mid); border-radius: 7px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+
+/* ── INLINE FORM ── */
+.step-expand { display: none; background: var(--paper-deep); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; margin-top: 12px; }
+.step-expand.open { display: block; }
+.step-expand h4 { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 10px; }
+.form-field { margin-bottom: 10px; }
+.form-field label { display: block; font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-bottom: 4px; }
+.form-field input, .form-field textarea, .form-field select { width: 100%; background: var(--paper); border: 1px solid var(--rule-mid); border-radius: 7px; padding: 8px 10px; font-size: 13px; color: var(--ink); font-family: inherit; outline: none; transition: border-color 0.15s; }
+.form-field input:focus, .form-field textarea:focus { border-color: var(--moxo); }
+.form-field textarea { resize: vertical; min-height: 72px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-actions { display: flex; gap: 8px; margin-top: 14px; }
+
+/* ── JOURNEY FOOTER ── */
+.journey-footer { padding: 12px 24px; background: var(--paper-deep); border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; }
+.journey-footer .powered { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--ink-mute); }
+.moxo-wordmark { display: flex; align-items: center; gap: 4px; font-weight: 700; font-size: 12px; color: var(--moxo); }
+
+/* ── MINI CARDS ── */
+.cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.mini-card { background: var(--paper); border: 1px solid var(--rule); border-radius: 12px; padding: 18px 20px; cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.mini-card:hover { border-color: var(--rule-mid); transform: translateY(-1px); }
+.mini-card-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+.mini-card-icon.sage { background: var(--sage-pale); }
+.mini-card-icon.violet { background: var(--violet-pale); }
+.mini-card h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.mini-card p { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+.mini-card .card-action { display: inline-flex; align-items: center; gap: 4px; margin-top: 12px; font-size: 12.5px; font-weight: 600; color: var(--sage-deep); cursor: pointer; }
+.mini-card .card-action.violet { color: var(--violet); }
+
+/* ── DEMO SWITCHER ── */
+.demo-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--ink); color: #fff; padding: 10px 24px; display: flex; align-items: center; gap: 12px; z-index: 200; font-size: 13px; }
+.demo-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: rgba(255,255,255,0.5); white-space: nowrap; }
+.demo-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.demo-btn { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 500; cursor: pointer; font-family: inherit; white-space: nowrap; transition: background 0.12s; }
+.demo-btn:hover { background: rgba(255,255,255,0.2); }
+.demo-btn.active { background: var(--moxo); border-color: var(--moxo); color: #fff; }
+.demo-spacer { flex: 1; }
+.sdk-status { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 600; }
+.sdk-status.live { background: rgba(16,185,129,0.2); color: #34D399; }
+.sdk-status.demo { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.45); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 16px; }
+  .cards-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .demo-bar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-mark">M</div>
+    MyGentic
+  </a>
+  <div class="nav-links">
+    <div class="nav-link">Dashboard</div>
+    <div class="nav-link active">My Brains</div>
+    <div class="nav-link">Marketplace</div>
+    <div class="nav-link">Sage AI</div>
+    <div class="nav-link">Connections</div>
+  </div>
+  <div class="nav-right">
+    <span class="nav-badge">⭐ Industry Rockstar</span>
+    <div class="avatar">P</div>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-item active"><span class="icon">🧠</span> My Brains</div>
+    <div class="sidebar-item"><span class="icon">🎙️</span> Sage Sessions <span class="count">1</span></div>
+    <div class="sidebar-item"><span class="icon">🔌</span> Connections</div>
+    <div class="sidebar-item"><span class="icon">🛒</span> Marketplace</div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">My Expert Brains</div>
+      <div class="sidebar-item" style="background:var(--marigold-pale);color:var(--marigold-deep);">
+        <span class="icon">⭐</span> Industry Rockstar
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <div class="sidebar-item"><span class="icon">👤</span> Profile</div>
+      <div class="sidebar-item"><span class="icon">🔑</span> API &amp; MCP</div>
+    </div>
+  </nav>
+
+  <main class="main" style="padding-bottom:72px;">
+    <div class="page-header">
+      <div class="eyebrow" id="eyebrow">Expert Brain</div>
+      <h1 id="heading">Industry Rockstar</h1>
+      <p class="subtitle" id="subtitle">Your AI-powered professional identity is being built. Complete each step to unlock the full power of your Expert Brain.</p>
+    </div>
+
+    <!-- BRAIN PROGRESS CARD -->
+    <div class="brain-card">
+      <div class="brain-card-header">
+        <div class="brain-icon" id="brain-icon">⭐</div>
+        <div class="brain-meta">
+          <h2 id="brain-name">Industry Rockstar Brain</h2>
+          <div class="brain-sub" id="brain-sub">50+ professional data points across 7 domains</div>
+          <span class="brain-tag" id="brain-tag">🏆 Flagship Brain · $47/mo</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-label">
+          <span>Brain completeness</span>
+          <strong id="progress-pct">25% complete</strong>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:25%"></div></div>
+      </div>
+      <div class="brain-stats">
+        <div class="brain-stat"><span class="val">1</span><span class="lbl">of 4 steps done</span></div>
+        <div class="brain-stat"><span class="val">12</span><span class="lbl">data points captured</span></div>
+        <div class="brain-stat"><span class="val">~3d</span><span class="lbl">to full activation</span></div>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(this,'journey')">Setup Journey</div>
+      <div class="tab" onclick="switchTab(this,'profile')">Brain Profile</div>
+      <div class="tab" onclick="switchTab(this,'sessions')">Sage Sessions</div>
+    </div>
+
+    <!-- JOURNEY TAB -->
+    <div id="tab-journey">
+      <div class="journey-section">
+        <div class="journey-header">
+          <div class="journey-title">
+            <div class="moxo-dot"></div>
+            <h3 id="journey-title">Your Industry Rockstar Setup Journey</h3>
+          </div>
+          <div class="journey-badge" id="journey-badge">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5v3l1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            Step 2 of 4 active
+          </div>
+        </div>
+
+        <!-- SDK EMBED: real Moxo flow renders here when live -->
+        <div id="moxo-flow-embed" style="display:none;"></div>
+
+        <!-- DEMO STEPS: shown when SDK not yet connected -->
+        <div id="demo-steps" class="steps">
+          <div class="step step-done">
+            <div class="step-number-wrap">
+              <div class="step-number">✓</div>
+              <div class="step-connector"></div>
+            </div>
+            <div class="step-body">
+              <div class="step-row">
+                <div>
+                  <div class="step-name">Welcome &amp; Account Setup</div>
+                  <div class="step-desc">Confirmed your subscription and set up your MyGentic account access.</div>
+                  <div class="step-meta">
+                    <span class="step-tag done">✓ Completed Sep 30</span>
+                    <span class="step-tag done">~2 min</span>
+                  </div>
+                </div>
+                <div class="step-cta"><button class="btn-ghost" style="font-size:12px;">View</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step step-active" onclick="toggleExpand('step2-form')">
+            <div class="step-number-wrap">
+              <div class="step-number">2</div>
+              <div class="step-connector"></div>
+            </div>
+            <div class="step-body">
+              <div class="step-row">
+                <div>
+                  <div class="step-name" id="step2-name">Professional Brain Intake</div>
+                  <div class="step-desc" id="step2-desc">Share your expertise, career story, and key credentials so we can build your structured professional brain.</div>
+                  <div class="step-meta">
+                    <span class="step-tag active">▶ In progress — action required</span>
+                    <span class="step-tag">~8 min</span>
+                  </div>
+                </div>
+                <div class="step-cta">
+                  <button class="btn-primary" onclick="event.stopPropagation();toggleExpand('step2-form')">Complete Now</button>
+                </div>
+              </div>
+              <div class="step-expand" id="step2-form">
+                <h4>Professional Background Form</h4>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Current Role</label>
+                    <input type="text" placeholder="e.g. VP of Product at Acme Corp" id="f-role">
+                  </div>
+                  <div class="form-field">
+                    <label>Industry</label>
+                    <select id="f-industry">
+                      <option value="">Select industry…</option>
+                      <option>SaaS / Technology</option>
+                      <option>Finance / FinTech</option>
+                      <option>Healthcare</option>
+                      <option>Consulting</option>
+                      <option>E-commerce</option>
+                      <option>Media / Marketing</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label>Years of Experience</label>
+                    <input type="number" min="1" max="50" placeholder="e.g. 12" id="f-yoe">
+                  </div>
+                  <div class="form-field">
+                    <label>LinkedIn Profile URL</label>
+                    <input type="url" placeholder="https://linkedin.com/in/…" id="f-li">
+                  </div>
+                </div>
+                <div class="form-field">
+                  <label>Top 3 Areas of Expertise</label>
+                  <input type="text" placeholder="e.g. Product Strategy, B2B Go-to-Market, Team Building" id="f-expertise">
+                </div>
+                <div class="form-field">
+                  <label>Key Career Achievement</label>
+                  <textarea placeholder="Describe your most impressive career win — include metrics if possible…" id="f-achievement"></textarea>
+                </div>
+                <div class="form-actions">
+                  <button class="btn-primary" onclick="submitIntake()">Submit to MyGentic Team →</button>
+                  <button class="btn-ghost" onclick="toggleExpand('step2-form')">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step step-locked">
+            <div class="step-number-wrap">
+              <div class="step-number">🔒</div>
+              <div class="step-connector"></div>
+            </div>
+            <div class="step-body">
+              <div class="step-row">
+                <div>
+                  <div class="step-name" id="step3-name">Expert Brain Review &amp; Enrichment</div>
+                  <div class="step-desc" id="step3-desc">The MyGentic team reviews your submission, enriches your brain with curated data, and prepares your full professional context.</div>
+                  <div class="step-meta">
+                    <span class="step-tag locked">🔒 Unlocks after step 2</span>
+                    <span class="step-tag locked">1–2 business days</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="step step-locked">
+            <div class="step-number-wrap">
+              <div class="step-number">🔒</div>
+            </div>
+            <div class="step-body">
+              <div class="step-row">
+                <div>
+                  <div class="step-name" id="step4-name">Brain Activated — First AI Session</div>
+                  <div class="step-desc" id="step4-desc">Your Expert Brain goes live. Connect to AI tools via MCP, run your first Sage interview, and see your professional context in action.</div>
+                  <div class="step-meta">
+                    <span class="step-tag locked">🔒 Final step</span>
+                    <span class="step-tag locked">~15 min</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /demo-steps -->
+
+        <div class="journey-footer">
+          <div class="powered">
+            Workflow powered by
+            <div class="moxo-wordmark">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect width="14" height="14" rx="3" fill="#00B5AD"/><path d="M3 5l4 4 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Moxo
+            </div>
+          </div>
+          <span class="eta" id="eta">Estimated completion: ~3 days</span>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div class="mini-card">
+          <div class="mini-card-icon sage">🎙️</div>
+          <h4>Sage — Your AI Interviewer</h4>
+          <p>Sage will conduct a structured interview to capture the nuance behind your expertise. Book your first session after Brain setup.</p>
+          <div class="card-action">Schedule session →</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-card-icon violet">🔌</div>
+          <h4>MCP &amp; API Access</h4>
+          <p>Once activated, inject your professional context into Claude, ChatGPT, and other AI tools with one MCP connection.</p>
+          <div class="card-action violet">View credentials →</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-profile" style="display:none;">
+      <div style="background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:32px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:12px;">🧠</div>
+        <p style="font-family:'Instrument Serif',serif;font-size:20px;color:var(--ink);margin-bottom:8px;">Brain profile builds as you complete each step</p>
+        <p style="color:var(--ink-mute);font-size:14px;">Complete the Professional Intake to see your structured brain data here.</p>
+      </div>
+    </div>
+
+    <div id="tab-sessions" style="display:none;">
+      <div style="background:var(--paper);border:1px solid var(--rule);border-radius:14px;padding:32px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:12px;">🎙️</div>
+        <p style="font-family:'Instrument Serif',serif;font-size:20px;color:var(--ink);margin-bottom:8px;">No Sage sessions yet</p>
+        <p style="color:var(--ink-mute);font-size:14px;">Schedule your first AI interview after completing your Brain intake.</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- DEMO CONTROL BAR -->
+<div class="demo-bar">
+  <span class="demo-label">Demo</span>
+  <div class="demo-btns">
+    <button class="demo-btn active" onclick="setScene('rockstar',this)">Industry Rockstar</button>
+    <button class="demo-btn" onclick="setScene('member',this)">New Member Setup</button>
+    <button class="demo-btn" onclick="setScene('coach',this)">Coach Onboarding</button>
+    <button class="demo-btn" onclick="setScene('marketplace',this)">Brain Submission</button>
+  </div>
+  <div class="demo-spacer"></div>
+  <span class="sdk-status demo" id="sdk-status-badge">SDK: connecting…</span>
+</div>
+
+<script>
+// ── MOXO SDK INTEGRATION ──────────────────────────────────────────────────
+const DEMO_USER_EMAIL = 'pavan.prasad@moxo.com';
+
+// Map each demo scene to a Moxo template ID (update when templates are created)
+const TEMPLATE_IDS = {
+  rockstar:    null, // 'tmpl_xxx' — set once created in Moxo
+  member:      null,
+  coach:       null,
+  marketplace: null,
+};
+
+let moxoToken = null;
+let activeFlowId = null;
+let sdkReady = false;
+
+async function initMoxoSDK() {
+  try {
+    const res = await fetch('/api/moxo-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: DEMO_USER_EMAIL }),
+    });
+    const data = await res.json();
+    if (data.token || data.sessionToken) {
+      moxoToken = data.token || data.sessionToken;
+      sdkReady = true;
+      document.getElementById('sdk-status-badge').textContent = 'SDK: live ✓';
+      document.getElementById('sdk-status-badge').className = 'sdk-status live';
+      console.log('[Moxo] SDK session minted');
+      loadFlowForCurrentScene();
+    } else {
+      throw new Error(data.error || data.code || 'no token');
+    }
+  } catch (e) {
+    console.warn('[Moxo] SDK not available, running in demo mode:', e.message);
+    document.getElementById('sdk-status-badge').textContent = 'Demo mode';
+    document.getElementById('sdk-status-badge').className = 'sdk-status demo';
+  }
+}
+
+async function loadFlowForCurrentScene() {
+  const templateId = TEMPLATE_IDS[currentScene];
+  if (!sdkReady || !templateId || !moxoToken) return;
+
+  const embed = document.getElementById('moxo-flow-embed');
+  const demoSteps = document.getElementById('demo-steps');
+  embed.className = 'loading';
+  embed.style.display = '';
+  embed.innerHTML = '<p style="color:var(--ink-mute);font-size:13px;padding:32px;text-align:center;">Loading your Moxo workflow…</p>';
+
+  try {
+    // Check if a flow already exists for this user + template
+    const listRes = await fetch(`/api/moxo-flows?templateId=${templateId}`, {
+      headers: { 'Authorization': `Bearer ${moxoToken}` },
+    });
+    const listData = await listRes.json();
+    let flowId = listData.flows?.[0]?.id;
+
+    // Create one if none exists (brain data auto-injected)
+    if (!flowId) {
+      const createRes = await fetch('/api/moxo-flows', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateId,
+          participantEmail: DEMO_USER_EMAIL,
+          brainData: getBrainData(currentScene),
+        }),
+      });
+      const createData = await createRes.json();
+      flowId = createData.flow?.id || createData.id;
+    }
+
+    if (flowId) {
+      activeFlowId = flowId;
+      // Embed the Moxo flow using the SDK session token
+      embed.className = '';
+      embed.style.display = '';
+      embed.innerHTML = `<iframe
+        src="https://app.moxo.com/mygentic/sdk/flow/${flowId}?token=${encodeURIComponent(moxoToken)}"
+        allow="camera; microphone; clipboard-write"
+        style="width:100%;border:none;min-height:600px;"
+        title="Moxo Workflow"
+      ></iframe>`;
+      demoSteps.style.display = 'none';
+    }
+  } catch (e) {
+    console.warn('[Moxo] Flow load failed, showing demo steps:', e.message);
+    embed.style.display = 'none';
+    demoSteps.style.display = '';
+  }
+}
+
+function getBrainData(scene) {
+  const map = {
+    rockstar:    { brainType: 'industry_rockstar', plan: 'flagship', monthlyPrice: 47 },
+    member:      { brainType: 'starter', plan: 'free' },
+    coach:       { brainType: 'coaching', plan: 'genius', clientName: 'Sarah Chen' },
+    marketplace: { brainType: 'marketplace_submission', submissionTitle: 'Enterprise Sales Brain' },
+  };
+  return map[scene] || {};
+}
+
+// ── SCENE DATA ───────────────────────────────────────────────────────────
+let currentScene = 'rockstar';
+const scenes = {
+  rockstar: {
+    eyebrow: 'Expert Brain', h1: 'Industry Rockstar', badge: '⭐ Industry Rockstar',
+    subtitle: 'Your AI-powered professional identity is being built. Complete each step to unlock the full power of your Expert Brain.',
+    brainName: 'Industry Rockstar Brain', brainSub: '50+ professional data points across 7 domains',
+    brainTag: '🏆 Flagship Brain · $47/mo', brainIcon: '⭐', progress: 25,
+    journeyTitle: 'Your Industry Rockstar Setup Journey', journeyBadge: 'Step 2 of 4 active', eta: 'Estimated completion: ~3 days',
+    step2name: 'Professional Brain Intake', step2desc: 'Share your expertise, career story, and key credentials so we can build your structured professional brain.',
+    step3name: 'Expert Brain Review & Enrichment', step3desc: 'The MyGentic team reviews your submission, enriches your brain with curated data, and prepares your full professional context.',
+    step4name: 'Brain Activated — First AI Session', step4desc: 'Your Expert Brain goes live. Connect to AI tools via MCP, run your first Sage interview, and see your professional context in action.',
+  },
+  member: {
+    eyebrow: 'Getting Started', h1: 'Welcome to MyGentic', badge: '🌱 New Member',
+    subtitle: "Let's build your professional brain from the ground up. This guided setup takes about 20 minutes.",
+    brainName: 'Starter Brain', brainSub: 'Core professional context — role, skills, and goals',
+    brainTag: '🆕 Free tier · Upgrade anytime', brainIcon: '🌱', progress: 0,
+    journeyTitle: 'New Member Brain Setup', journeyBadge: 'Step 2 of 4 active', eta: 'Estimated completion: ~20 min',
+    step2name: 'Collect Your Professional Context', step2desc: 'We ask 12 structured questions across your career, skills, values, and goals to seed your professional brain.',
+    step3name: 'Connect Your Tools', step3desc: 'Link LinkedIn, your calendar, or upload your resume to enrich your brain automatically.',
+    step4name: 'First AI Session Ready', step4desc: 'Your brain is ready. Chat with Sage for personalized AI conversations that actually know who you are.',
+  },
+  coach: {
+    eyebrow: 'Genius Plan', h1: 'Coach Onboarding', badge: '🎓 Genius Coach',
+    subtitle: 'Onboard your new client into your coaching program. Moxo automates the intake and briefing so you can focus on the work.',
+    brainName: 'Client: Sarah Chen', brainSub: 'New coaching client — intake in progress',
+    brainTag: '🤝 Coach-initiated · Due Oct 3', brainIcon: '🎓', progress: 50,
+    journeyTitle: 'Client Onboarding Workflow', journeyBadge: 'Step 2 of 4 active', eta: 'Estimated completion: Oct 3',
+    step2name: 'Client Intake Form', step2desc: 'Sarah completes her professional background, current challenges, and goals for the coaching engagement.',
+    step3name: 'Coach Review & Session Brief', step3desc: 'Review the intake, add your coaching notes, and MyGentic generates a personalized session brief.',
+    step4name: 'Kickoff Session — Scheduled', step4desc: 'Calendar invite sent, session brief delivered, and the coaching engagement officially begins.',
+  },
+  marketplace: {
+    eyebrow: 'Marketplace', h1: 'Submit an Expert Brain', badge: '🏪 Brain Builder',
+    subtitle: 'Share your specialized knowledge as a marketplace Expert Brain. The MyGentic team reviews, approves, and publishes it for others to license.',
+    brainName: 'Submission: Enterprise Sales Brain', brainSub: 'Your specialized brain — under marketplace review',
+    brainTag: '📤 Submission pending review', brainIcon: '🏪', progress: 60,
+    journeyTitle: 'Expert Brain Submission Workflow', journeyBadge: 'Under review', eta: 'Review time: 3–5 business days',
+    step2name: 'Brain Content & Metadata', step2desc: "Describe your Expert Brain's specialty, the 7 domains of knowledge, pricing, and example use cases.",
+    step3name: 'Marketplace Review', step3desc: 'The MyGentic curation team evaluates your Brain for quality, accuracy, and market fit.',
+    step4name: 'Published to Marketplace', step4desc: 'Your Expert Brain goes live in the marketplace. You earn 70% of every license sold.',
+  }
+};
+
+function setScene(key, btn) {
+  currentScene = key;
+  const s = scenes[key];
+  if (!s) return;
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('eyebrow').textContent = s.eyebrow;
+  document.getElementById('heading').textContent = s.h1;
+  document.getElementById('subtitle').textContent = s.subtitle;
+  document.querySelector('.nav-badge').textContent = s.badge;
+  document.getElementById('brain-name').textContent = s.brainName;
+  document.getElementById('brain-sub').textContent = s.brainSub;
+  document.getElementById('brain-tag').textContent = s.brainTag;
+  document.getElementById('brain-icon').textContent = s.brainIcon;
+  document.getElementById('progress-fill').style.width = s.progress + '%';
+  document.getElementById('progress-pct').textContent = s.progress + '% complete';
+  document.getElementById('journey-title').textContent = s.journeyTitle;
+  document.getElementById('journey-badge').innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 4.5v3l1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>${s.journeyBadge}`;
+  document.getElementById('eta').textContent = s.eta;
+  document.getElementById('step2-name').textContent = s.step2name;
+  document.getElementById('step2-desc').textContent = s.step2desc;
+  document.getElementById('step3-name').textContent = s.step3name;
+  document.getElementById('step3-desc').textContent = s.step3desc;
+  document.getElementById('step4-name').textContent = s.step4name;
+  document.getElementById('step4-desc').textContent = s.step4desc;
+  document.querySelectorAll('.step-expand').forEach(e => e.classList.remove('open'));
+
+  // Reset flow embed when scene changes
+  const embed = document.getElementById('moxo-flow-embed');
+  embed.style.display = 'none';
+  embed.innerHTML = '';
+  document.getElementById('demo-steps').style.display = '';
+
+  if (sdkReady) loadFlowForCurrentScene();
+}
+
+function toggleExpand(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function switchTab(tab, name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  ['journey','profile','sessions'].forEach(n => {
+    const el = document.getElementById('tab-' + n);
+    if (el) el.style.display = n === name ? '' : 'none';
+  });
+}
+
+function submitIntake() {
+  const role = document.getElementById('f-role').value;
+  if (!role) { alert('Please fill in your current role first.'); return; }
+  // In production: POST to your backend which creates the Moxo flow step submission
+  alert('✓ Submitted! The MyGentic team will review and enrich your brain within 1–2 business days.');
+  toggleExpand('step2-form');
+}
+
+// Boot SDK on load
+initMoxoSDK();
+</script>
+</body>
+</html>
