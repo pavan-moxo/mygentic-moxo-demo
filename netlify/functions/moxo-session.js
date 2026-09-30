@@ -45,10 +45,16 @@ export const handler = async (event) => {
     };
   }
 
+  // Mint response is bare (no {success,data} envelope) — key is session_token
   return {
     statusCode: 200,
     headers: { ...cors(event), "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      session_token: data.session_token,
+      expires_at: data.expires_at,
+      user: data.user,
+      persona: data.persona,
+    }),
   };
 };
 

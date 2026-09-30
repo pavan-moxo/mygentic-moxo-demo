@@ -497,10 +497,9 @@ body { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height
 </div>
 
 <script>
-// ── MOXO REST API INTEGRATION ─────────────────────────────────────────────
+// ── MOXO HEADLESS SDK INTEGRATION ────────────────────────────────────────
 const DEMO_USER_EMAIL = 'pavan.prasad@moxo.com';
 
-// Template IDs (created in Moxo workspace)
 const TEMPLATES = {
   rockstar:    '31cc564d-a688-4c77-96de-c618b4c68d27',
   member:      '57484144-0f7d-4d3a-befe-07ae7b5894db',
@@ -508,101 +507,265 @@ const TEMPLATES = {
   marketplace: 'fcccc92a-9561-4590-9173-ae93cc4714bb',
 };
 
-// Track active flows per scene (cache per session)
-const activeFlows = {};
-let moxoReady = false;
+let sdkToken = null;       // short-lived session token
+let sdkTokenExp = 0;       // unix seconds
+let activeFlows = {};      // scene → flowId
+let activeSteps = {};      // scene → [{id, stepId, name, type, status, assignedToYou}]
+
+// ── Token management ──────────────────────────────────────────────────────
+
+async function getToken() {
+  if (sdkToken && Date.now() / 1000 < sdkTokenExp - 60) return sdkToken;
+  const res = await fetch('/api/moxo-session', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: DEMO_USER_EMAIL }),
+  });
+  const data = await res.json();
+  if (!data.session_token) throw new Error(data.error || 'No session_token in response');
+  sdkToken = data.session_token;
+  sdkTokenExp = data.expires_at || (Date.now() / 1000 + 900);
+  return sdkToken;
+}
+
+async function sdk(method, path, body) {
+  const token = await getToken();
+  const url = `/api/moxo-sdk?path=${encodeURIComponent(path)}`;
+  const opts = { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  return res.json();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
 
 async function initMoxo() {
-  // Test connectivity to our backend
   try {
-    const res = await fetch('/api/moxo-flows?scene=rockstar');
-    const data = await res.json();
-    if (data.success !== false) {
-      moxoReady = true;
-      document.getElementById('sdk-status-badge').textContent = 'Moxo: live ✓';
-      document.getElementById('sdk-status-badge').className = 'sdk-status live';
-      console.log('[Moxo] API connected');
-      loadFlowForCurrentScene();
-    }
+    await getToken();
+    document.getElementById('sdk-status-badge').textContent = 'SDK: live ✓';
+    document.getElementById('sdk-status-badge').className = 'sdk-status live';
+    console.log('[Moxo] Headless SDK session minted');
+    loadFlowForCurrentScene();
   } catch (e) {
-    console.warn('[Moxo] API not reachable, demo mode:', e.message);
+    console.warn('[Moxo] SDK not available, demo mode:', e.message);
     document.getElementById('sdk-status-badge').textContent = 'Demo mode';
     document.getElementById('sdk-status-badge').className = 'sdk-status demo';
+    // Still load flow data via REST API as fallback
+    loadFlowViaRest();
   }
 }
 
+// ── Load flow + render steps via headless SDK ─────────────────────────────
+
 async function loadFlowForCurrentScene() {
-  if (!moxoReady) return;
-
   const scene = currentScene;
-  const embed = document.getElementById('moxo-flow-embed');
-  const demoSteps = document.getElementById('demo-steps');
-
-  // Show loading state in the steps area while we check
-  const activeStepEl = demoSteps.querySelector('.step-active .step-name');
-  if (activeStepEl) activeStepEl.textContent += ' ⟳';
-
   try {
-    // Check if a flow already exists for this scene
+    // Get or create the flow
     let flowId = activeFlows[scene];
     if (!flowId) {
       const listRes = await fetch(`/api/moxo-flows?scene=${scene}`);
       const listData = await listRes.json();
       flowId = listData.data?.[0]?.id;
+      if (!flowId) {
+        const createRes = await fetch('/api/moxo-flows', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scene, userEmail: DEMO_USER_EMAIL }),
+        });
+        const cd = await createRes.json();
+        flowId = cd.data?.id;
+        console.log('[Moxo] Started flow:', flowId);
+      }
+      if (flowId) activeFlows[scene] = flowId;
     }
+    if (!flowId) return;
 
-    // Start one if none exists
-    if (!flowId) {
-      const createRes = await fetch('/api/moxo-flows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scene, userEmail: DEMO_USER_EMAIL }),
-      });
-      const createData = await createRes.json();
-      flowId = createData.data?.id;
-      if (flowId) console.log(`[Moxo] Started new flow: ${flowId}`);
-    }
+    // Load flow via headless SDK (user-scoped view)
+    const flowData = await sdk('GET', `/sdk/v1/flows/${flowId}`);
+    const flow = flowData.data;
+    if (!flow) { loadFlowViaRest(); return; }
 
-    if (flowId) {
-      activeFlows[scene] = flowId;
-      // Fetch real step statuses and update the UI
-      const flowRes = await fetch(`/api/moxo-flows?scene=${scene}`);
-      const flowData = await flowRes.json();
-      const flow = flowData.data?.[0];
-      if (flow) updateStepStatusesFromFlow(flow, scene);
+    activeSteps[scene] = flow.steps || [];
+    renderSDKFlow(flow, scene);
 
-      // Show a "View in Moxo" link so user can act on steps
-      showMoxoLink(flowId);
-    }
   } catch (e) {
-    console.warn('[Moxo] Flow load error:', e.message);
+    console.warn('[Moxo] SDK flow load failed:', e.message);
+    loadFlowViaRest();
   }
-
-  // Restore step name if we modified it
-  if (activeStepEl) activeStepEl.textContent = activeStepEl.textContent.replace(' ⟳', '');
 }
 
-function updateStepStatusesFromFlow(flow, scene) {
-  if (!flow.steps) return;
-  const steps = flow.steps;
+async function loadFlowViaRest() {
+  // Fallback: use REST API to get step statuses
+  const scene = currentScene;
+  try {
+    let flowId = activeFlows[scene];
+    if (!flowId) {
+      const r = await fetch(`/api/moxo-flows?scene=${scene}`);
+      const d = await r.json();
+      flowId = d.data?.[0]?.id;
+      if (flowId) activeFlows[scene] = flowId;
+    }
+    if (!flowId) return;
+    updateProgressFromFlowId(flowId);
+    showMoxoLink(flowId);
+  } catch (e) { /* silent */ }
+}
+
+async function updateProgressFromFlowId(flowId) {
+  const res = await fetch(`/api/moxo-flows?scene=${currentScene}`);
+  const data = await res.json();
+  const flow = data.data?.[0];
+  if (!flow?.steps) return;
+  const done = flow.steps.filter(s => s.status === 'COMPLETED').length;
+  const pct = Math.round((done / flow.steps.length) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '% complete';
+}
+
+// ── Render real SDK flow ──────────────────────────────────────────────────
+
+function renderSDKFlow(flow, scene) {
+  const steps = flow.steps || [];
   const stepEls = document.querySelectorAll('#demo-steps .step');
+
+  // Update step visuals from real status
   steps.forEach((step, i) => {
     const el = stepEls[i];
     if (!el) return;
-    el.className = 'step ' + (
-      step.status === 'COMPLETED' ? 'step-done' :
-      step.status === 'IN_PROGRESS' ? 'step-active' : 'step-locked'
-    );
+    el.className = 'step ' + (step.status === 'COMPLETED' ? 'step-done' : step.status === 'IN_PROGRESS' ? 'step-active' : 'step-locked');
     const numEl = el.querySelector('.step-number');
-    if (numEl) {
-      numEl.textContent = step.status === 'COMPLETED' ? '✓' :
-                          step.status === 'IN_PROGRESS' ? (i + 1) : '🔒';
-    }
+    if (numEl) numEl.textContent = step.status === 'COMPLETED' ? '✓' : step.status === 'IN_PROGRESS' ? (i + 1) : '🔒';
   });
+
+  // Progress
   const done = steps.filter(s => s.status === 'COMPLETED').length;
-  const pct = Math.round((done / steps.length) * 100);
+  const pct = Math.round((done / Math.max(steps.length, 1)) * 100);
   document.getElementById('progress-fill').style.width = pct + '%';
   document.getElementById('progress-pct').textContent = pct + '% complete';
+
+  // Find the active step assigned to current user
+  const activeStep = steps.find(s => s.status === 'IN_PROGRESS' && s.assignedToYou);
+  if (activeStep) {
+    loadAndRenderFormStep(flow.id, activeStep, scene);
+  } else {
+    // Show flow link banner
+    showMoxoLink(flow.id);
+  }
+}
+
+async function loadAndRenderFormStep(flowId, step, scene) {
+  const embed = document.getElementById('moxo-flow-embed');
+  embed.style.display = '';
+  embed.innerHTML = `<div style="padding:20px 24px;color:var(--ink-mute);font-size:13px;">Loading form…</div>`;
+
+  try {
+    const schemaData = await sdk('GET', `/sdk/v1/flows/${flowId}/steps/${step.id}/form-schema`);
+    const schema = schemaData.data;
+    if (!schema || !schema.fields?.length) {
+      showMoxoLink(flowId);
+      return;
+    }
+    renderNativeForm(flowId, step.id, schema, scene);
+  } catch (e) {
+    console.warn('[Moxo] Form schema error:', e.message);
+    showMoxoLink(flowId);
+  }
+}
+
+function renderNativeForm(flowId, stepExecutionId, schema, scene) {
+  const embed = document.getElementById('moxo-flow-embed');
+
+  const fieldsHtml = schema.fields.map(field => {
+    const req = field.required ? '<span style="color:var(--moxo)">*</span>' : '';
+    const help = field.description ? `<div style="font-size:11.5px;color:var(--ink-mute);margin-top:2px;">${field.description}</div>` : '';
+
+    let input = '';
+    if (field.type === 'TEXT_SINGLE_LINE' || field.type === 'EMAIL' || field.type === 'URL' || field.type === 'NUMBER') {
+      const t = field.type === 'EMAIL' ? 'email' : field.type === 'URL' ? 'url' : field.type === 'NUMBER' ? 'number' : 'text';
+      input = `<input type="${t}" id="f_${field.id}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''} style="width:100%;background:var(--paper);border:1px solid var(--rule-mid);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--ink);font-family:inherit;outline:none;">`;
+    } else if (field.type === 'TEXT_MULTI_LINE') {
+      input = `<textarea id="f_${field.id}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''} rows="3" style="width:100%;background:var(--paper);border:1px solid var(--rule-mid);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--ink);font-family:inherit;outline:none;resize:vertical;"></textarea>`;
+    } else if (field.type === 'DROPDOWN' && field.options) {
+      const opts = field.options.map(o => `<option value="${o.id}">${o.label}</option>`).join('');
+      input = `<select id="f_${field.id}" style="width:100%;background:var(--paper);border:1px solid var(--rule-mid);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--ink);font-family:inherit;outline:none;"><option value="">Choose…</option>${opts}</select>`;
+    } else if (field.type === 'YES_NO') {
+      input = `<div style="display:flex;gap:8px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f_${field.id}" value="yes" id="f_${field.id}_yes"> Yes</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="radio" name="f_${field.id}" value="no" id="f_${field.id}_no"> No</label>
+      </div>`;
+    } else {
+      input = `<input type="text" id="f_${field.id}" placeholder="${field.placeholder || ''}" style="width:100%;background:var(--paper);border:1px solid var(--rule-mid);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--ink);font-family:inherit;outline:none;">`;
+    }
+
+    return `<div style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;font-weight:500;color:var(--ink-soft);margin-bottom:4px;">${field.label} ${req}</label>
+      ${help}${input}
+    </div>`;
+  }).join('');
+
+  embed.innerHTML = `
+    <div style="padding:20px 24px;border-bottom:1px solid var(--rule);background:var(--moxo-pale);display:flex;align-items:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="4" fill="#00B5AD"/><path d="M4 6l4 4 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-size:13px;font-weight:600;color:var(--moxo-deep);">Powered by Moxo Headless SDK</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--ink-mute);font-family:monospace;">${stepExecutionId.slice(0,8)}…</span>
+    </div>
+    <form id="sdk-form" style="padding:20px 24px;" onsubmit="submitSDKForm(event,'${flowId}','${stepExecutionId}')">
+      ${fieldsHtml}
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button type="submit" class="btn-primary" id="sdk-submit-btn">Submit to MyGentic →</button>
+        <button type="button" class="btn-ghost" onclick="document.getElementById('moxo-flow-embed').style.display='none'">Close</button>
+      </div>
+      <div id="sdk-form-status" style="margin-top:10px;font-size:12.5px;"></div>
+    </form>
+  `;
+}
+
+async function submitSDKForm(e, flowId, stepExecutionId) {
+  e.preventDefault();
+  const btn = document.getElementById('sdk-submit-btn');
+  const status = document.getElementById('sdk-form-status');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  status.textContent = '';
+
+  try {
+    const scene = currentScene;
+    const steps = activeSteps[scene] || [];
+    const step = steps.find(s => s.id === stepExecutionId);
+    const schemaData = await sdk('GET', `/sdk/v1/flows/${flowId}/steps/${stepExecutionId}/form-schema`);
+    const fields = schemaData.data?.fields || [];
+
+    const fieldValues = {};
+    for (const field of fields) {
+      if (field.type === 'YES_NO') {
+        const checked = document.querySelector(`input[name="f_${field.id}"]:checked`);
+        if (checked) fieldValues[field.id] = checked.value === 'yes';
+      } else if (field.type === 'NUMBER') {
+        const el = document.getElementById(`f_${field.id}`);
+        if (el?.value) fieldValues[field.id] = Number(el.value);
+      } else {
+        const el = document.getElementById(`f_${field.id}`);
+        if (el?.value) fieldValues[field.id] = el.value;
+      }
+    }
+
+    const result = await sdk('POST', `/sdk/v1/flows/${flowId}/steps/${stepExecutionId}/complete`, { fieldValues });
+
+    if (result.success) {
+      status.style.color = 'var(--emerald)';
+      status.textContent = '✓ Submitted! Flow advancing…';
+      setTimeout(() => {
+        activeFlows[currentScene] = flowId;
+        loadFlowForCurrentScene();
+      }, 1500);
+    } else {
+      throw new Error(result.error?.message || 'Submission failed');
+    }
+  } catch (err) {
+    status.style.color = 'var(--marigold)';
+    status.textContent = '✗ ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Submit to MyGentic →';
+  }
 }
 
 function showMoxoLink(flowId) {
@@ -612,7 +775,7 @@ function showMoxoLink(flowId) {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--moxo-pale);border-bottom:1px solid rgba(0,181,173,0.2);">
       <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--moxo-deep);font-weight:600;">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect width="16" height="16" rx="4" fill="#00B5AD"/><path d="M4 6l4 4 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Real Moxo flow running — Flow ID: <code style="font-family:monospace;font-size:11px;background:rgba(0,181,173,0.15);padding:1px 6px;border-radius:4px;">${flowId.slice(0,8)}…</code>
+        Real Moxo flow — <code style="font-family:monospace;font-size:11px;background:rgba(0,181,173,0.15);padding:1px 6px;border-radius:4px;">${flowId.slice(0,8)}…</code>
       </div>
       <a href="https://app.moxo.com/mygentic" target="_blank" rel="noopener"
         style="display:inline-flex;align-items:center;gap:6px;background:var(--moxo);color:#fff;border-radius:7px;padding:6px 14px;font-size:12.5px;font-weight:600;text-decoration:none;">
